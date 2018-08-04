@@ -109,7 +109,7 @@ class TokenAuthentication(HTTPAuthentication):
         self._confirm = fn
         return fn
 
-    def validate(self):
+    def validate(self, *args, **kwargs):
         authorization = self.get_authorization()
         if not authorization:
             return self.get_authenticate()
@@ -229,7 +229,7 @@ BFpI+3AA48GoHltploblnM/ogRiwnOV7UmEMqFB7ZPTVkDh20qw'}
         self._confirm = fn
         return fn
 
-    def validate(self):
+    def validate(self, *args, **kwargs):
         authorization = self.get_authorization()
         if not authorization:
             return self.get_authenticate()
