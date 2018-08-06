@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import osnk.validations
 import re
+from ethereum.utils import ecrecover_to_pub, normalize_address, sha3
 
 
 def b64decode(s):
@@ -240,3 +241,63 @@ BFpI+3AA48GoHltploblnM/ogRiwnOV7UmEMqFB7ZPTVkDh20qw'}
     def payload(self):
         _, (_, payload, _) = self.get_authorization()
         return payload
+
+
+class EthereumAuthentication(HTTPAuthentication):
+    """Verify Ethereum signed message signature.
+
+    >>> auth = EthereumAuthentication()
+    >>> address = '0xee93af328da1bd6b995f9814b1eeefaf8cadd5b3'
+    >>> signature = ('0xb631f9f2da32fed758a23c7f0b9590504d813de17622662bc3cb5a'
+    ...              '5acf3974315c5a2588fa21cbf27ef3cb7a3416dd63ec448b860e498b'
+    ...              '904bc65b1916aad9b31c')
+    >>> headers = {'Authorization': f'Ethereum {address} {signature}'}
+    >>> @auth.authorization
+    ... def authorization(header):
+    ...     return headers.get(header, None)
+    >>> @auth.authenticate
+    ... def authenticate(header, scheme):
+    ...     return (header, scheme)
+    >>> @auth.message
+    ... def message(address):
+    ...     return b'Hello!'
+    >>> from osnk.validations import requires
+    >>> @requires(auth)
+    ... def index(passed):
+    ...     return f'Verified 0x{auth.address.hex()}'
+    >>> index()
+    'Verified 0xee93af328da1bd6b995f9814b1eeefaf8cadd5b3'
+    """
+    def __init__(self, scheme='Ethereum', *args, **kwargs):
+        super().__init__(scheme, *args, **kwargs)
+
+    def parse_authorization(self, authorization):
+        return authorization.split(' ')
+
+    def _message(self, address):
+        raise NotImplementedError()
+
+    def message(self, fn):
+        self._message = fn
+        return fn
+
+    def validate(self, *args, **kwargs):
+        signer, signature = self.get_authorization()
+        signer = normalize_address(signer)
+        signature = signature[-130:]
+        r = int(signature[0:64], 16)
+        s = int(signature[64:128], 16)
+        v = int(signature[128:130], 16)
+        if v not in (27, 28):
+            v += 27
+        message = self._message(signer)
+        prefix = b'\x19Ethereum Signed Message:\n' + str(len(message)).encode()
+        mhash = sha3(prefix + message)
+        pubkey = ecrecover_to_pub(mhash, v, r, s)
+        address = normalize_address(sha3(pubkey)[-20:])
+        if signer != address:
+            return self.get_authenticate()
+
+    @property
+    def address(self):
+        return normalize_address(self.get_authorization()[0])
