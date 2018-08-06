@@ -146,21 +146,17 @@ BFpI+3AA48GoHltploblnM/ogRiwnOV7UmEMqFB7ZPTVkDh20qw'}
     >>> @auth.authorization
     ... def authorization(header):
     ...     return headers.get(header, None)
-    ...
     >>> @auth.authenticate
     ... def authenticate(header, scheme):
     ...     return (header, scheme)
-    ...
     >>> @auth.now
     ... def now():
-    ...     return datetime.datetime(2018, 1, 1)
-    ...
+    ...     return expires - datetime.timedelta(microseconds=1)
     >>> from osnk.validations import requires
     >>> @requires(auth)
     ... def index(passed):
     ...     assert auth in passed, 'A bug in the validation module'
     ...     return 'Hello!'
-    ...
     >>> index()
     'Hello!'
     """
@@ -234,7 +230,7 @@ BFpI+3AA48GoHltploblnM/ogRiwnOV7UmEMqFB7ZPTVkDh20qw'}
         if not authorization:
             return self.get_authenticate()
         credentials, (expires, payload, signature) = authorization
-        if expires < self._now():
+        if expires <= self._now():
             return self.get_authenticate()
         if not self._verify(credentials, expires, payload, signature) or \
            not self._confirm(credentials, payload):
