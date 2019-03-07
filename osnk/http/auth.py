@@ -5,7 +5,11 @@ import hmac
 import hashlib
 import osnk.validations
 import re
-from ethereum.utils import ecrecover_to_pub, normalize_address, sha3
+
+try:
+    from ethereum.utils import ecrecover_to_pub, normalize_address, sha3
+except ModuleNotFoundError:
+    pass
 
 
 def b64decode(s):
