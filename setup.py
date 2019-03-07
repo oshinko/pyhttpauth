@@ -7,7 +7,7 @@ setup(
     author='Oshinko',
     author_email='osnk@renjaku.jp',
     url='https://github.com/oshinko/pyhttpauth',
-    packages=['osnk'],
+    packages=['osnk.http'],
     install_requires=['ethereum'],
     classifiers=[
         'Programming Language :: Python',
